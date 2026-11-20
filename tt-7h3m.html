@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>СПИСОК КАНАЛОВ</title>
+<link rel="stylesheet" href="assets/crt.css">
+<style>
+  .tt { background: #000; font-family: "Anonymous Pro", monospace; padding: 12px 12px 10px; font-size: clamp(11px, 3.1vw, 20px); line-height: 1.38; color: #fff; }
+  .tt-in { width: 40ch; max-width: 100%; margin: 0 auto; }
+  .tt-head { display: flex; justify-content: space-between; gap: 1ch; font-weight: 700; margin-bottom: .4em; }
+  .tt-head .p { color: #fff; } .tt-head .n { color: #ff0; } .tt-head .t { color: #0f0; }
+  .tt-row { white-space: pre-wrap; word-break: break-word; min-height: 1.38em; }
+  .c-w { color: #fff; } .c-y { color: #ff0; } .c-c { color: #0ff; } .c-g { color: #0f0; }
+  .c-m { color: #f0f; } .c-r { color: #f33; } .c-b { color: #66f; }
+  .bg-b { background: #00e; } .bg-r { background: #e00; } .bg-g { background: #0a0; color: #000; }
+  .big { font-size: 1.5em; line-height: 1.2; }
+  .tt form { display: grid; gap: 8px; justify-items: stretch; margin-top: .6em; }
+  .tt input[type=text] { width: 100%; font-size: 1em; }
+  .tt .btn { width: 100%; }
+  .tt .msg { color: #f33; min-height: 1.3em; text-align: center; }
+  .prize { border: 2px solid #0f0; padding: .8em; margin-top: .6em; text-align: center; color: #0f0; }
+  .prize .code { display: block; font-size: 1.5em; font-weight: 700; margin: .5em 0; color: #fff; letter-spacing: .1em; word-break: break-all; user-select: all; }
+  .morse-wrap { display: grid; justify-items: center; gap: .45em; margin: 1em 0; }
+  .morse-button { width: min(100%, 300px); min-height: 58px; border: 3px solid #7a0000; border-radius: 5px; background: #310000; color: #fff; font: inherit; font-weight: 700; letter-spacing: .18em; cursor: pointer; box-shadow: inset 0 0 12px #000, 0 0 8px #f002; }
+  .morse-button.lit { background: #f00; border-color: #ff7777; box-shadow: 0 0 28px #f00, inset 0 0 12px #fff8; }
+  .morse-code { color: #f66; text-align: center; font-size: .8em; letter-spacing: .12em; }
+</style>
+</head>
+<body>
+<noscript>Для этого канала нужен JavaScript.</noscript>
+
+<main class="tv">
+  <div class="tv-top">
+    <span>Телевизор "<span data-brand></span>"</span>
+    <span class="led on" aria-hidden="true"></span>
+  </div>
+
+  <div class="screen-wrap tall tt" id="screen">
+    <div class="screen-fx"></div>
+    <div class="tt-in" id="tt"></div>
+  </div>
+
+  <div class="panel">
+    <div class="keys" id="keys"></div>
+  </div>
+</main>
+
+<script src="assets/common.js"></script>
+<script src="assets/data.js"></script>
+<script>
+(function () {
+  'use strict';
+  TVQ.boot();
+  const S = TVQ.sfx, CFG = TVQ.CONFIG, box = document.getElementById('tt');
+  let morseTimer = null;
+  const clock = () => new Date().toLocaleTimeString('ru-RU');
+  function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+
+  function head(num) {
+    const h = el('div', 'tt-head');
+    h.append(el('span', 'p', 'P' + num), el('span', 'n', CFG.brand + ' ТЕКСТ'), el('span', 't', clock()));
+    h.lastChild.id = 'clock'; return h;
+  }
+
+  function showPrize(code) {
+    const prize = el('div', 'prize'), copy = el('button', 'btn', 'СКОПИРОВАТЬ');
+    copy.type = 'button';
+    copy.addEventListener('click', async () => {
+      try { await navigator.clipboard.writeText(code); copy.textContent = 'СКОПИРОВАНО ✓'; }
+      catch (err) { copy.textContent = 'ВЫДЕЛИТЕ КОД ВРУЧНУЮ'; }
+    });
+    prize.append(
+      el('div', '', '★ ПОЗДРАВЛЯЕМ! ★'),
+      el('div', '', 'ВАША КОДОВАЯ ФРАЗА:'),
+      el('span', 'code', code),
+      el('div', '', 'Поздравляю! Данную фразу нужно КАК МОЖНО СКОРЕЕ написать @Orandiess в личные сообщения телеграмм!'),
+      copy
+    );
+    box.append(prize);
+  }
+
+  function playMorse(button, code) {
+    clearTimeout(morseTimer);
+    const sequence = [];
+    [...code].forEach((symbol, index) => {
+      if (symbol === '.') sequence.push([1, 560], [0, 560]);
+      else if (symbol === '-') sequence.push([1, 1200], [0, 560]);
+      else if (symbol === ' ') {
+        if (sequence.length) sequence[sequence.length - 1][1] = 1200;
+      }
+    });
+    sequence.push([0, 2800]);
+    let i = 0;
+    const step = () => {
+      const pulse = sequence[i++];
+      if (!pulse) { i = 0; morseTimer = setTimeout(step, 0); return; }
+      button.classList.toggle('lit', !!pulse[0]);
+      morseTimer = setTimeout(step, pulse[1]);
+    };
+    step();
+  }
+
+  function render(num, d) {
+    clearTimeout(morseTimer);
+    d.rows.forEach(([c, t, bg]) => {
+      const r = el('div', 'tt-row' + (c ? ' c-' + c : '') + (bg ? ' ' + bg : ''));
+      if (t[0] === '*') r.append(el('span', 'c-y', t[1]), t.slice(2)); else r.textContent = t;
+      box.append(r);
+    });
+    if (d.morse) {
+      const wrap = el('div', 'morse-wrap');
+      const signal = el('button', 'morse-button', 'СИГНАЛ');
+      signal.type = 'button';
+      signal.setAttribute('aria-label', 'Повторить передачу кода Морзе');
+      signal.addEventListener('click', () => playMorse(signal, d.morse));
+      wrap.append(signal);      box.append(wrap);
+      playMorse(signal, d.morse);
+    }
+    if (!d.final) return;
+
+    const form = el('form'), input = el('input'), button = el('button', 'btn', 'ПОДТВЕРДИТЬ'), msg = el('div', 'msg');
+    form.autocomplete = 'off';
+    input.type = 'text'; input.placeholder = 'ЧЕТЫРЕ СЛОВА'; input.autocomplete = 'off'; input.spellcheck = false;
+    input.setAttribute('autocapitalize', 'characters');
+    button.type = 'submit'; msg.setAttribute('role', 'status');
+    form.append(input, button, msg); box.append(form);
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault(); S.init();
+      if (!(window.crypto && window.crypto.subtle)) { msg.textContent = 'НУЖЕН ЗАЩИЩЁННЫЙ РЕЖИМ (HTTPS)'; return; }
+      button.disabled = true; msg.textContent = 'ВОССТАНАВЛИВАЕМ ПОТОК…';
+      const p = await TVQ.open(d.prize, num + input.value);
+      button.disabled = false;
+      if (p === null) {
+        msg.textContent = 'ФРАЗА НЕ СОВПАДАЕТ · ДОСТУП ЗАКРЫТ'; S.err();
+        form.classList.remove('shake'); void form.offsetWidth; form.classList.add('shake');
+        return;
+      }
+      const code = JSON.parse(p).code;
+      form.remove(); S.win(); showPrize(code);
+    });
+  }
+
+  async function show(n) {
+    const sec = TVQ.store.get('sec') || '';
+    const p = QD.tt[await TVQ.rid(n)];
+    const d = p && sec ? await TVQ.open(p, n + sec) : null;
+    box.replaceChildren(head(n));
+    if (d === null) { box.append(el('div', 'tt-row c-r', 'СТРАНИЦА ' + n + ' НЕ НАЙДЕНА')); return; }
+    S.page(); render(n, JSON.parse(d));
+  }
+
+  TVQ.remote({ file: 'tt-7h3m.html', onChannel: show });
+  setInterval(() => { const c = document.getElementById('clock'); if (c) c.textContent = clock(); }, 1000);
+  box.replaceChildren(head('----'));
+  const g = TVQ.store.get('goto');
+  if (g) TVQ.rid(g).then((id) => { if (QD.routes[id] === 'tt-7h3m.html') show(g); });
+})();
+</script>
+</body>
+</html>

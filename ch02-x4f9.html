@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Канал 02</title>
+<link rel="stylesheet" href="assets/crt.css">
+</head>
+<body>
+<!--
+   ╔══════════════════════════════════════════════╗
+   ║                  ЗАМЕТКА                     ║
+   ╠══════════════════════════════════════════════╣
+   ║  Молодец, что нашёл данную записку!          ║
+   ║                                              ║
+   ║  Ключ:     ответ на загадку                  ║
+   ║  ШИФР:   АЭРЗЧБГЩЙ                           ║
+   ║  Способ шифровки: Виженер (БЕЗ БУКВЫ Ё)      ║
+   ║  Расшифрованное слово впишите в окошко       ║
+   ║  под экраном                                 ║
+   ╚══════════════════════════════════════════════╝
+-->
+<noscript>Для этого канала нужен JavaScript.</noscript>
+
+<main class="tv">
+  <div class="tv-top">
+    <span>Телевизор "<span data-brand></span>"</span>
+    <span class="led on" aria-hidden="true"></span>
+  </div>
+
+  <div class="screen-wrap tall crt-text" id="screen">
+    <div class="screen-fx"></div>
+    <div class="tag">В ЭФИРЕ</div>
+    <h1>ЗАГАДКА ЭФИРА</h1>
+    <div id="rid" style="display:flex;flex-direction:column;gap:16px"></div>
+  </div>
+
+  <div class="panel">
+    <form class="form" id="f" autocomplete="off">
+      <label for="w">КОДОВОЕ СЛОВО</label>
+      <div class="row">
+        <input type="text" id="w" placeholder="_ _ _ _ _ _ _ _ _" autocapitalize="characters" spellcheck="false" autocomplete="off" aria-describedby="msg">
+        <button class="btn" type="submit">В ЭФИР</button>
+      </div>
+      <div class="msg" id="msg" role="status"></div>
+    </form>
+    <div class="keys" id="keys"></div>
+  </div>
+</main>
+
+<!-- Рекламная пауза. Здесь могла быть ваша реклама!!! -->
+<script src="assets/common.js"></script>
+<script src="assets/data.js"></script>
+<script>
+(function () {
+  'use strict';
+  TVQ.boot();
+  const S = TVQ.sfx, $ = (id) => document.getElementById(id);
+
+  async function load(n) {
+    const d = await TVQ.open(QD.riddle, n), box = $('rid');
+    box.replaceChildren();
+    if (d === null) { box.textContent = 'НЕТ СИГНАЛА'; return; }
+    JSON.parse(d).r.forEach((t, i) => {
+      const p = document.createElement('p'); if (!i) p.className = 'riddle';
+      p.style.whiteSpace = 'pre-line'; p.textContent = t; box.append(p);
+    });
+  }
+
+  $('f').addEventListener('submit', async function (e) {
+    e.preventDefault(); S.init();
+    const msg = $('msg'), v = $('w').value;
+    const next = window.crypto && window.crypto.subtle ? await TVQ.open(QD.word, v) : null;
+    if (next) {
+      TVQ.store.set('sec', TVQ.norm(v)); S.ok();
+      msg.style.color = 'var(--green)'; msg.textContent = 'СИГНАЛ ПРИНЯТ · ПЕРЕКЛЮЧИСЬ НА КАНАЛ ' + next;
+      return;
+    }
+    S.err(); msg.style.color = ''; msg.textContent = 'СИГНАЛ НЕ ПРИНЯТ';
+    this.classList.remove('shake'); void this.offsetWidth; this.classList.add('shake');
+  });
+
+  TVQ.remote({ file: 'ch02-x4f9.html', onChannel: load });
+  $('rid').textContent = 'НЕТ СИГНАЛА';
+  const g = TVQ.store.get('goto');
+  if (g) TVQ.rid(g).then((id) => { if (QD.routes[id] === 'ch02-x4f9.html') load(g); });
+})();
+</script>
+</body>
+</html>
